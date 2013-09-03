@@ -32,7 +32,6 @@ public class LoaderConfig extends CLIConfig {
 
     @Option(desc = "The JDBC connection string for the source database")
     String jdbcurl = "";
-    //String example = "jdbc:mysql://localhost/test?useLegacyDatetimeCode=false&serverTimezone=America/New_York&characterEncoding=UTF-8&useUnicode=true";
 
     @Option(desc = "The class name of the JDBC driver. Place the driver JAR files in the lib directory.")
     String jdbcdriver = "";

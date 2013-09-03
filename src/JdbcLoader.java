@@ -79,54 +79,6 @@ public class JdbcLoader {
         System.out.println("closed connections");
     }
 
-    // table examples
-    public void loadTicketsLog() throws SQLException, Exception {
-        String procName = "TICKETS_LOG.insert";
-        String select = "SELECT * FROM tickets_log;";
-        Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        ResultSet rs = stmt.executeQuery(select);
-
-        while (rs.next()) {
-            client.callProcedure(new LoaderCallback(procName),
-                                 procName,
-                                 rs.getLong(1),
-                                 rs.getTimestamp(2,cal),
-                                 rs.getInt(3),
-                                 rs.getInt(4),
-                                 rs.getLong(5)
-                                 );
-        }
-        client.drain();
-        LoaderCallback.printProcedureResults(procName);        
-    }
-
-    // big table example
-    public void loadSeats() throws SQLException, Exception {
-        String procName = "SEATS.insert";
-        String select = "SELECT * FROM seats;";
-        Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        //stmt.setFetchSize(1000);
-        stmt.setFetchSize(Integer.MIN_VALUE);
-        ResultSet rs = stmt.executeQuery(select);
-
-        int counter = 0;
-        while (rs.next()) {
-            counter++;
-            client.callProcedure(new LoaderCallback(procName),
-                                 procName,
-                                 rs.getString(1),
-                                 rs.getInt(2),
-                                 rs.getInt(3),
-                                 rs.getInt(4)
-                                 );
-            if (counter % 10000 == 0) {
-                System.out.println("Sent " + counter + " requests");
-            }
-        }
-        client.drain();
-        LoaderCallback.printProcedureResults(procName);        
-    }
-
     public void loadTable(String tableName, String procName) throws SQLException, Exception {
 
         long t1 = System.currentTimeMillis();
@@ -140,7 +92,6 @@ public class JdbcLoader {
         String jdbcSelect = "SELECT * FROM " + tableName + ";";
         System.out.println("Querying source database: " + jdbcSelect);
         Statement jdbcStmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        //jdbcStmt.setFetchSize(Integer.MIN_VALUE);
         jdbcStmt.setFetchSize(config.fetchsize);
         ResultSet rs = jdbcStmt.executeQuery(jdbcSelect);
         ResultSetMetaData rsmd = rs.getMetaData();
@@ -190,9 +141,6 @@ public class JdbcLoader {
         loader.connectToVoltDB();
 
         loader.loadTable(cArgs.tablename, cArgs.procname);
-
-        //loader.loadTicketsLog();
-        //loader.loadSeats();
 
         loader.close();
 
