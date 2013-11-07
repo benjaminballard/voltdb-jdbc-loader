@@ -33,7 +33,7 @@ public class LoaderCallback implements ProcedureCallback {
     }
 
     public LoaderCallback(String procedure) {
-        this(procedure, 5l);
+        this(procedure, 5l); // Increasing the max errors to a very high default value
     }
 
     @Override
