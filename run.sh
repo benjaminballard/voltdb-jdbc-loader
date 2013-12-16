@@ -18,7 +18,7 @@ function loader() {
 
     java -Xmx512m -Dfile.encoding=UTF-8 -classpath target/*:$CLASSPATH \
         -Dlog4j.configuration=file://$LOG4J \
-        jdbcloader.JdbcLoader \
+        org.voltdb.utils.JdbcLoader \
         --jdbcurl="jdbc:mysql://localhost/test?useLegacyDatetimeCode=false&serverTimezone=America/New_York&characterEncoding=UTF-8&useUnicode=true" \
         --jdbcdriver="com.mysql.jdbc.Driver" \
         --jdbcuser="" \

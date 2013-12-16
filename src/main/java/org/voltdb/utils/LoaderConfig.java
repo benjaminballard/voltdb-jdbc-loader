@@ -1,4 +1,4 @@
-package jdbcloader;
+package org.voltdb.utils;
 /* This file is part of VoltDB.
  * Copyright (C) 2008-2013 VoltDB Inc.
  *
@@ -25,7 +25,7 @@ package jdbcloader;
 import org.voltdb.CLIConfig;
 
 /**
- * Uses CLIConfig class to declaratively state command line options 
+ * Uses CLIConfig class to declaratively state command line options
  * with defaults and validation.
  */
 public class LoaderConfig extends CLIConfig {
@@ -57,8 +57,17 @@ public class LoaderConfig extends CLIConfig {
     @Option(desc = "Name of procedure for VoltDB insert (optional)")
     public String procname = "";
 
-    @Option(desc = "JDBC fetch size")
-    public int fetchsize = 0;
+    @Option(desc = "JDBC fetch size. Give a reasonable number.Default is 1000.")
+    public int fetchsize = 1000;
+
+    @Option(desc = "Maximum queue size for the producer thread, the thread that reads data from Netezza, to stop pulling data temporarily allowing consumer thread to catchup. Reasonably higher number.Default is 20.")
+    public int maxQueueSize = 20;
+
+    @Option(desc = "Path to the properties files which specifies queries to be executed against the source database against the VoltDB procedure names")
+    public String queriesFile = "";
+
+    @Option(desc = "Maximum time consumer can wait without any new data in seconds")
+    public long maxWaitTime = 10;
 
     public LoaderConfig() {
     }
@@ -68,13 +77,14 @@ public class LoaderConfig extends CLIConfig {
         config.parse(classname, args);
         return config;
     }
-    
+
     @Override
     public void validate() {
         // add validation rules here
         if (jdbcurl.equals("")) exitWithMessageAndUsage("jdbcurl cannot be blank");
         if (jdbcdriver.equals("")) exitWithMessageAndUsage("jdbcdriver cannot be blank");
         if (volt_servers.equals("")) exitWithMessageAndUsage("volt_servers cannot be blank");
-        if (tablename.equals("")) exitWithMessageAndUsage("tablename cannot be blank");
+        if (tablename.equals("") && queriesFile.equals(""))
+            exitWithMessageAndUsage("either tablename or queriesFile should be specified");
     }
 }
