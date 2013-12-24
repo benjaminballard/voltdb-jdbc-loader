@@ -69,6 +69,9 @@ public class LoaderConfig extends CLIConfig {
     @Option(desc = "Maximum time consumer can wait without any new data in seconds")
     public long maxWaitTime = 10;
 
+    @Option(desc = "Maximum number of errors before loading should be stopped")
+    public long maxErrors = 100;
+
     public LoaderConfig() {
     }
 

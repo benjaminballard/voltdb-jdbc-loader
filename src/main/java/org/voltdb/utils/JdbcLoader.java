@@ -24,6 +24,8 @@ public class JdbcLoader {
     LoaderConfig config;
     Statement jdbcStmt;
     int records = 0;
+    String currentQuery;
+    String currentVoltProcedure;
 
 
     public JdbcLoader(LoaderConfig config) {
@@ -113,7 +115,7 @@ public class JdbcLoader {
     }
 
     public void load(String queryFile) throws SQLException, IOException, InterruptedException {
-        Properties properties = new Properties();
+        Properties properties = new OrderedProperties();
 
         properties.load(new FileInputStream(queryFile));
 
@@ -138,6 +140,9 @@ public class JdbcLoader {
     }
 
     private void copyData(String sourceSelectQuery, String voltProcedure) throws SQLException, IOException, InterruptedException {
+        this.currentQuery = sourceSelectQuery;
+        this.currentVoltProcedure = voltProcedure;
+
         System.out.println("Querying source database: " + sourceSelectQuery);
         long t1 = System.currentTimeMillis();
         ResultSet rs = jdbcStmt.executeQuery(sourceSelectQuery);
@@ -206,11 +211,15 @@ public class JdbcLoader {
 
                 controller.signalProducer(false);
             } catch (SQLException e) {
+                System.out.println(Thread.currentThread().getName() + " - Exception occurred while executing the query: " + currentQuery);
                 e.printStackTrace();
+                controller.signalProducer(false);
             } catch (InterruptedException e) {
+                System.out.println(Thread.currentThread().getName() + " - Exception occurred while executing the query: " + currentQuery);
                 e.printStackTrace();
+                controller.signalProducer(false);
             } catch (Exception e) {
-                System.out.println(Thread.currentThread().getName() + " - unexpected exception");
+                System.out.println(Thread.currentThread().getName() + " - unexpected exception occurred while executing the query: " + currentQuery);
                 e.printStackTrace();
                 controller.signal(false);
             }
@@ -232,14 +241,14 @@ public class JdbcLoader {
             try {
                 ArrayList<Object[]> arrayList = monitor.jobQueue.poll(config.maxWaitTime, TimeUnit.SECONDS);
 
-                if(arrayList == null && !controller.signalProducer){
+                if (arrayList == null && !controller.signalProducer) {
                     controller.signal(false);
-                } else if (arrayList == null){
+                } else if (arrayList == null) {
                     System.out.println(Thread.currentThread().getName() + " waited for " + config.maxWaitTime + " to retrieve new data. Hence ending the transfer now assuming that producer is stuck.");
                     controller.signal(false);
                 } else {
                     for (Object[] columnValues : arrayList) {
-                        client.callProcedure(new LoaderCallback(voltProcedure),
+                        client.callProcedure(new LoaderCallback(voltProcedure, config.maxErrors, columnValues),
                                 voltProcedure,
                                 columnValues
                         );
@@ -248,13 +257,16 @@ public class JdbcLoader {
                     System.out.println("Sent " + arrayList.size() + " requests");
                 }
             } catch (IOException e) {
+                System.out.println(Thread.currentThread().getName() + " - Exception occurred while invoking the procedure: " + currentVoltProcedure);
                 e.printStackTrace();
+                controller.signal(false);
             } catch (InterruptedException e) {
+                System.out.println(Thread.currentThread().getName() + " - Exception occurred while invoking the procedure: " + currentVoltProcedure);
                 e.printStackTrace();
                 System.out.println("Interrupted while " + Thread.currentThread().getName() + " waited for " + config.maxWaitTime + " to retrieve new data. Hence ending the transfer now");
                 controller.signal(false);
             } catch (Exception e) {
-                System.out.println(Thread.currentThread().getName() + " - unexpected exception");
+                System.out.println(Thread.currentThread().getName() + " - unexpected Exception occurred while invoking the procedure: " + currentVoltProcedure);
                 e.printStackTrace();
                 controller.signal(false);
             }
@@ -282,4 +294,95 @@ public class JdbcLoader {
         loader.close();
     }
 
+
+    /**
+     * This class is a decorator of {@link Properties}.
+     * <p>It uses {@link LinkedHashMap} instead of {@link Hashtable}
+     * to preserve properties order when loading from streams.</p>
+     */
+    public class OrderedProperties extends Properties {
+        private Map<String, String> entries = new LinkedHashMap<String, String>();
+
+        public Enumeration keys() {
+            return Collections.enumeration(entries.keySet());
+        }
+
+        public Enumeration elements() {
+            return Collections.enumeration(entries.values());
+        }
+
+        public boolean contains(Object value) {
+            return entries.containsValue(value);
+        }
+
+        public void putAll(Map<? extends Object, ? extends Object> map) {
+            entries.putAll((Map<? extends String, ? extends String>) map);
+        }
+
+        public int size() {
+            return entries.size();
+        }
+
+        public boolean isEmpty() {
+            return entries.isEmpty();
+        }
+
+        public boolean containsKey(Object key) {
+            return entries.containsKey(key);
+        }
+
+        public boolean containsValue(Object value) {
+            return entries.containsValue(value);
+        }
+
+        public String get(Object key) {
+            return entries.get(key);
+        }
+
+        public String getProperty(String key) {
+            return entries.get(key);
+        }
+
+        public String put(Object key, Object value) {
+            return entries.put((String) key, (String) value);
+        }
+
+        public Object remove(Object key) {
+            return entries.remove(key);
+        }
+
+        public void clear() {
+            entries.clear();
+        }
+
+        public Set keySet() {
+            return entries.keySet();
+        }
+
+        public Collection values() {
+            return entries.values();
+        }
+
+        public Set entrySet() {
+            return entries.entrySet();
+        }
+
+        public boolean equals(Object o) {
+            return entries.equals(o);
+        }
+
+        public int hashCode() {
+            return entries.hashCode();
+        }
+
+        public Set<String> stringPropertyNames() {
+            Set<String> set = new LinkedHashSet<String>();
+
+            for (Object key : this.entries.keySet()) {
+                set.add((String)key);
+            }
+
+            return set;
+        }
+    }
 }
