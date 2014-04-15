@@ -1,61 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
   <head>
-    <meta charset='utf-8' />
-    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Voltdb-jdbc-loader : A command-line tool to load data into VoltDB from a JDBC source." />
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Voltdb-jdbc-loader by benjaminballard</title>
 
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
-
-    <title>Voltdb-jdbc-loader</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
   </head>
-
   <body>
+    <div class="wrapper">
+      <header>
+        <h1>Voltdb-jdbc-loader</h1>
+        <p>A command-line tool to load data into VoltDB from a JDBC source.</p>
 
-    <!-- HEADER -->
-    <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/benjaminballard/voltdb-jdbc-loader">View on GitHub</a>
+        <p class="view"><a href="https://github.com/benjaminballard/voltdb-jdbc-loader">View the Project on GitHub <small>benjaminballard/voltdb-jdbc-loader</small></a></p>
 
-          <h1 id="project_title">Voltdb-jdbc-loader</h1>
-          <h2 id="project_tagline">A command-line tool to load data into VoltDB from a JDBC source.</h2>
 
-            <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/benjaminballard/voltdb-jdbc-loader/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/benjaminballard/voltdb-jdbc-loader/tarball/master">Download this project as a tar.gz file</a>
-            </section>
-        </header>
-    </div>
+        <ul>
+          <li><a href="https://github.com/benjaminballard/voltdb-jdbc-loader/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/benjaminballard/voltdb-jdbc-loader/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/benjaminballard/voltdb-jdbc-loader">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="voltdb-jdbc-loader" class="anchor" href="#voltdb-jdbc-loader"><span class="octicon octicon-link"></span></a>voltdb-jdbc-loader</h1>
 
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-      <section id="main_content" class="inner">
-        <h3>
-<a name="what-does-it-do" class="anchor" href="#what-does-it-do"><span class="octicon octicon-link"></span></a>What does it do?</h3>
+<p>A command-line tool to load data into VoltDB from a JDBC source.</p>
 
-<p>This project can be used to connect to any JDBC database and transfer entire tables into a VoltDB database that has an equivalent table defined.  It works one table at a time, and it assumes that you have already built the equivalent schema in VoltDB.</p>
+<p>Usage:</p>
 
-<h3>
-<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h3>
+<ol>
+<li>copy JDBC driver .jar file to lib directory</li>
+<li>edit loader() function in run.sh script to provide the following:
 
-<p>For usage, see the <a href="https://github.com/benjaminballard/voltdb-jdbc-loader/blob/master/README.md">README</a> file included in the project.</p>
+<ul>
+<li>JDBC URL</li>
+<li>JDBC driver class name</li>
+<li>VoltDB server and port list</li>
+<li>usernames and passwords</li>
+<li>table name</li>
+</ul>
+</li>
+<li>
+<p>Execute the following command:</p>
 
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<p>Ben Ballard (<a href="https://github.com/benjaminballard" class="user-mention">@benjaminballard</a>)</p>
+<p>./run.sh</p>
+</li>
+</ol>
       </section>
-    </div>
-
-    <!-- FOOTER  -->
-    <div id="footer_wrap" class="outer">
-      <footer class="inner">
-        <p class="copyright">Voltdb-jdbc-loader maintained by <a href="https://github.com/benjaminballard">benjaminballard</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/benjaminballard">benjaminballard</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
     </div>
-
+    <script src="javascripts/scale.fix.js"></script>
               <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
@@ -66,7 +70,6 @@
             pageTracker._trackPageview();
             } catch(err) {}
           </script>
-
 
   </body>
 </html>
