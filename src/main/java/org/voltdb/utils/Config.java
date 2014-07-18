@@ -28,22 +28,28 @@ import org.voltdb.CLIConfig;
  * Uses CLIConfig class to declaratively state command line options
  * with defaults and validation.
  */
-public class LoaderConfig extends CLIConfig {
+public class Config extends CLIConfig {
+
+    public static final String ALL = "ALL";
+    public static String DOT_SEPARATOR = "." ;
+    public static String COMMA_SEPARATOR = ",";
+    public static String MODULE_SUFFIX= "\\.|";
+    public static String TABLE_SUFFIX= " *|";
 
     @Option(desc = "The JDBC connection string for the source database")
-    String jdbcurl = "";
+    public String jdbcurl = "";
 
     @Option(desc = "The class name of the JDBC driver. Place the driver JAR files in the lib directory.")
-    String jdbcdriver = "";
+    public String jdbcdriver = "";
 
     @Option(desc = "Source database username")
-    String jdbcuser = "";
+    public String jdbcuser = "";
 
     @Option(desc = "Source database password")
-    String jdbcpassword = "";
+    public String jdbcpassword = "";
 
     @Option(desc = "Comma separated list in the form of server[:port] for the target VoltDB cluster.")
-    String volt_servers = "localhost";
+    public String volt_servers = "localhost";
 
     @Option(desc = "VoltDB user name")
     public String volt_user = "";
@@ -51,8 +57,11 @@ public class LoaderConfig extends CLIConfig {
     @Option(desc = "VoltDB password")
     public String volt_password = "";
 
-    @Option(desc = "Name of table to be loaded")
-    public String tablename = "";
+    @Option(desc = "Comma separate names of modules to be loaded.Special default value ALL represents all modules.")
+    public String modules = ALL;
+
+    @Option(desc = "Comma separate names of tables to be loaded.Special default value ALL represents all modules.")
+    public String tables = ALL;
 
     @Option(desc = "Name of procedure for VoltDB insert (optional)")
     public String procname = "";
@@ -69,14 +78,22 @@ public class LoaderConfig extends CLIConfig {
     @Option(desc = "Maximum time consumer can wait without any new data in seconds")
     public long maxWaitTime = 10;
 
-    @Option(desc = "Maximum number of errors before loading should be stopped")
+    @Option(desc = "Maximum number of errors per table before loading should be stopped")
     public long maxErrors = 100;
 
-    public LoaderConfig() {
+    @Option(desc = "Maxiumum time, in seconds, the client would wait for server to respond to a query")
+    public long queryTimeOut = 100;
+
+    public Config() {
     }
 
-    public static LoaderConfig getConfig(String classname, String[] args) {
-        LoaderConfig config = new LoaderConfig();
+    public static Config getConfig() {
+        Config config = new Config();
+        return config;
+    }
+
+    public static Config getConfig(String classname, String[] args) {
+        Config config = new Config();
         config.parse(classname, args);
         return config;
     }
@@ -87,7 +104,7 @@ public class LoaderConfig extends CLIConfig {
         if (jdbcurl.equals("")) exitWithMessageAndUsage("jdbcurl cannot be blank");
         if (jdbcdriver.equals("")) exitWithMessageAndUsage("jdbcdriver cannot be blank");
         if (volt_servers.equals("")) exitWithMessageAndUsage("volt_servers cannot be blank");
-        if (tablename.equals("") && queriesFile.equals(""))
-            exitWithMessageAndUsage("either tablename or queriesFile should be specified");
+        if (tables.equals("") && queriesFile.equals(""))
+            exitWithMessageAndUsage("either tables or queriesFile should be specified");
     }
 }
