@@ -52,7 +52,7 @@ public class JdbcLoader {
             // query the table
             String jdbcSelect = "SELECT * FROM " + tableName + ";";
 
-            Controller processor = new Controller<ArrayList<Object[]>>(client, new SourceReader(this), new DestinationWriter(this), jdbcSelect, procName, config);
+            Controller processor = new Controller<ArrayList<Object[]>>(client, new SourceReader(), new DestinationWriter(), jdbcSelect, procName, config);
             completion.submit(processor);
         }
 
@@ -94,7 +94,7 @@ public class JdbcLoader {
                 query = query.replaceFirst("\\[\\:" + param + "\\]", properties.getProperty(param));
             }
 
-            Controller processor = new Controller<ArrayList<Object[]>>(client, new SourceReader(this), new DestinationWriter(this), query, key.toUpperCase() + ".insert", config);
+            Controller processor = new Controller<ArrayList<Object[]>>(client, new SourceReader(), new DestinationWriter(), query, key.toUpperCase() + ".insert", config);
             completion.submit(processor);
         }
 
@@ -117,7 +117,6 @@ public class JdbcLoader {
 
         loader.connectToSource();
         loader.client = VoltDBClientConnectionUtil.connectToVoltDB(cArgs);
-
         if (cArgs.queriesFile.isEmpty()) {
             loader.loadTables(cArgs.tables, cArgs.procname);
         } else {
@@ -129,6 +128,7 @@ public class JdbcLoader {
         loader.logger.info("==================================================");
         loader.logger.info("This run of JDBC loader completed at" + new Date());
         loader.logger.info("==================================================");
+        System.out.println("Read/write complete!");
     }
 
 }

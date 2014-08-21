@@ -81,8 +81,14 @@ public class Config extends CLIConfig {
     @Option(desc = "Maximum number of errors per table before loading should be stopped")
     public long maxErrors = 100;
 
-    @Option(desc = "Maxiumum time, in seconds, the client would wait for server to respond to a query")
+    @Option(desc = "Maximum time, in seconds, the client would wait for server to respond to a query")
     public long queryTimeOut = 100;
+
+    @Option(desc = "SourceReader switch- false=JDBC, true=voltDB")
+    public boolean srisvoltdb = false;
+
+    @Option(desc = "DestinationWriter switch- false=JDBC, true=voltDB")
+    public boolean dwisvoltdb = true;
 
     public Config() {
     }

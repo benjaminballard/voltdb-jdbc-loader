@@ -26,6 +26,8 @@ function loader() {
         --volt_servers="localhost" \
         --fetchsize=100 \
         --tablename="mytable"
+        --srisvoltdb=false
+        --dwisvoltdb=true
 }
 
 function help() {
