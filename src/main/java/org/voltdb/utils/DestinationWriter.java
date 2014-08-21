@@ -34,20 +34,28 @@ class DestinationWriter extends Controller.Consumer<ArrayList<Object[]>> {
                         callback.setColumnValues(columnValues);
 
                         client.callProcedure(callback, procName, columnValues);
+                        tasks++;
                     }
 
                     logger.info("Sent " + arrayList.size() + " requests to " + procName);
                     callback.printProcedureIntermediateResults();
+                    if (controller.base.contains("postgres") && config.isPaginated) {
+                        if (tasks % config.pageSize == 0 && tasks != 0) {
+                            System.out.println("Flying consumer flag for " + iteration + "!");
+                            endConsumerFlag = true;
+                        }
+                    }
                 }
             } else if (!config.dwisvoltdb) {
 //                System.out.println("DestinationWriter is not VoltDB!");
 //                System.out.println("Variable sez DR is:" + config.dwisvoltdb);
-                if (arrayList == null) {
+                if (arrayList == null && !controller.signalProducer) {
                     controller.signal(false);
                 } else if (arrayList == null) {
                     logger.info(Thread.currentThread().getName() + " waited for " + config.maxWaitTime + " seconds to retrieve new data.");
                 } else {
                     for (Object[] columnValues : arrayList) {
+                        tasks++;
                         StringBuilder valueSB = new StringBuilder();
                         for (int i = 0; i < columnValues.length; i++) {
                             if (i != 0) {
@@ -57,13 +65,23 @@ class DestinationWriter extends Controller.Consumer<ArrayList<Object[]>> {
                             valueSB.append("'").append(columnValues[i]).append("'");
                         }
                         String sql = sb.toString()
-                            + "VALUES (" + valueSB.toString() + "))";
+                                + "VALUES (" + valueSB.toString() + "))";
 //                        System.out.println(sql);
                         try {
                             jdbcStmt.executeUpdate(sql);
+                            if (tasks >= controller.producers[iteration].results.getRowCount()) {
+                                System.out.println("Flying final consumer flag for " + iteration + "!");
+                                endConsumerFlag = true;
+                            }
                         } catch (Exception e) {
-                            System.out.println("Duplicate!");
+//                            System.out.println("Duplicate!");
                             continue;
+                        }
+                    }
+                    if (config.isPaginated) {
+                        if (tasks % config.pageSize == 0 && tasks != 0) {
+                            System.out.println("Flying consumer flag for " + iteration + "!");
+                            endConsumerFlag = true;
                         }
                     }
                 }

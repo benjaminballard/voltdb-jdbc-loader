@@ -90,6 +90,12 @@ public class Config extends CLIConfig {
     @Option(desc = "DestinationWriter switch- false=JDBC, true=voltDB")
     public boolean dwisvoltdb = true;
 
+    @Option(desc = "Paginated?")
+    public boolean isPaginated = false;
+
+    @Option(desc = "Page size- NOT input from command prompt, only here to be easily changed")
+    public int pageSize = 100000;
+
     public Config() {
     }
 
