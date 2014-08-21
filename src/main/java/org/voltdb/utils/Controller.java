@@ -25,7 +25,6 @@ public class Controller<T> implements Callable {
     protected int producersFinished = 0;  //counter to coordinate page completion and full data completion
     protected int consumersFinished = 0;  //ditto
     protected String base;
-    protected boolean[] isProducerIterationCompleteBools;
 
     public Controller(Client client, Producer[] pr, Consumer[] cr, String sourceSelectQuery, String voltProcedure, Config config, int pages, String base) throws SQLException {
         this.logger = LoggerFactory.getLogger(Callback.class);
@@ -40,10 +39,6 @@ public class Controller<T> implements Callable {
             //create individual, identical statements for each page (necessary for simultaneous counting)
             jdbcStmts[i] = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             jdbcStmts[i].setFetchSize(config.fetchsize);
-        }
-        isProducerIterationCompleteBools = new boolean[pages];
-        for (int i = 0; i < pages; i++) {
-            isProducerIterationCompleteBools[i] = false;
         }
 
         System.out.println("Querying source database: " + sourceSelectQuery);
@@ -180,7 +175,6 @@ public class Controller<T> implements Callable {
                     System.out.println("Creating resultArray for " + iteration + "! Query: " + query);
                     resultArray = client.callProcedure("@AdHoc", query).getResults();
                     System.out.println("ResultArray for " + iteration + " created!");
-                    controller.isProducerIterationCompleteBools[iteration] = true;
 
                 } catch (Exception e) {
                     System.out.println("Result Array formation failure!");
@@ -280,24 +274,12 @@ public class Controller<T> implements Callable {
 
             return this;
         }
-        public void waitMethod() {
-            while(!controller.isProducerIterationCompleteBools[iteration]) {
-                try {
-                    controller.producers[iteration].join();
-                } catch (InterruptedException ie) {
-                    System.out.println("InterruptedException on waiting!");
-                    ie.printStackTrace();
-                }
-            }
-        }
 
         public void run() {
             System.out.println("Cr begun");
+            System.out.println("waitMethod complete for " + iteration + "!");
+
             while (controller.signal()) {
-                if (config.isPaginated) {
-                    waitMethod();
-                }
-//                System.out.println("%*@(#$&%*($# waitMethod complete!");
                 consumerTask();
                 //end page (but not all consumers) once pageSize is reached
                 if (endConsumerFlag) {

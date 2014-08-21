@@ -38,7 +38,8 @@ class SourceReader extends Controller.Producer<ArrayList<Object[]>> {
                     arrayList.add(convertedResults);
 //                    System.out.println("Current row: " + results.getActiveRowIndex());
                     if (results.getActiveRowIndex() >= results.getRowCount() - 1) {
-                        break;
+                        System.out.println("Flying final producer flag for " + iteration + "! ArrayList length:" + arrayList.size());
+                        endProducerFlag = true;
                     }
                 }
                 monitor.jobQueue.put(arrayList);
@@ -46,7 +47,7 @@ class SourceReader extends Controller.Producer<ArrayList<Object[]>> {
 //                    System.out.println("           Id: " + j + ", it: " + iteration);
 //                }
 
-//                System.out.println("Pulled " + arrayList.size() + " records from the source! Active row: " + results.getActiveRowIndex() + ", iteration: " + iteration);
+                System.out.println("Pulled " + arrayList.size() + " records from the source! Active row: " + results.getActiveRowIndex() + ", iteration: " + iteration);
                 logger.info("Pulled " + arrayList.size() + " records from the source");
                 if (config.isPaginated) {
                     if ((results.getActiveRowIndex() + 1) % config.pageSize == 0 && results.getActiveRowIndex() != 0) {
