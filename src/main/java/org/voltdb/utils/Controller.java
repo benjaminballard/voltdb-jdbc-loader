@@ -2,6 +2,7 @@ package org.voltdb.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.voltdb.VoltTable;
 import org.voltdb.client.Client;
 
 import java.sql.*;
@@ -34,6 +35,7 @@ public class Controller<T> implements Callable {
 
         logger.info("Querying source database: " + sourceSelectQuery);
         this.t1 = System.currentTimeMillis();
+//        System.out.println(sourceSelectQuery);
         ResultSet rs = jdbcStmt.executeQuery(sourceSelectQuery);
         int columns = rs.getMetaData().getColumnCount();
         this.t2 = System.currentTimeMillis();
@@ -43,8 +45,8 @@ public class Controller<T> implements Callable {
 
         this.monitor = new Monitor<ArrayList<Object[]>>(config.maxQueueSize);
 
-        this.producer = pr.set(this, monitor, sourceSelectQuery, jdbcStmt, rs, columns);
-        this.consumer = cr.set(this, monitor, client, voltProcedure, callback);
+        this.producer = pr.set(this, monitor, sourceSelectQuery, jdbcStmt, client, voltProcedure, callback, rs, columns, config);
+        this.consumer = cr.set(this, monitor, client, voltProcedure, callback, jdbcStmt, config);
     }
 
     @Override
@@ -103,18 +105,28 @@ public class Controller<T> implements Callable {
         protected Monitor<T> monitor;
         protected Controller<T> controller;
         protected String query;
+        Client client;
+        String tableName;
+        Callback callback;
         ResultSet rs;
         int columns;
         Statement jdbcStmt;
+        VoltTable[] resultArray;
+        VoltTable results;
+        Config config;
 
 
-        public Producer set(Controller<T> controller, Monitor<T> monitor, String query, Statement jdbcStmt, ResultSet rs, int columns) {
+        public Producer set(Controller<T> controller, Monitor<T> monitor, String query, Statement jdbcStmt, Client client, String voltProcedure, Callback callback, ResultSet rs, int columns, Config config) {
             this.controller = controller;
             this.monitor = monitor;
             this.rs = rs;
             this.columns = columns;
             this.jdbcStmt = jdbcStmt;
             this.query = query;
+            this.client = client;
+            this.tableName = voltProcedure;
+            this.callback = callback;
+            this.config = config;
 
             this.setName("Producer");
 
@@ -122,6 +134,19 @@ public class Controller<T> implements Callable {
         }
 
         public void run() {
+
+            if (config.srisvoltdb) {
+                try {
+                    resultArray = client.callProcedure("@AdHoc", query).getResults();
+                } catch (Exception e) {
+                    System.out.println("Result Array formation failure!");
+                }
+                if (resultArray == null) {
+                    results = null;
+                } else {
+                    results = resultArray[0];
+                }
+            }
             while (controller.signal() && controller.signalProducer()) {  // end thread when there is nothing more that producer can do
                 producerTask();
             }
@@ -134,17 +159,30 @@ public class Controller<T> implements Callable {
         protected Monitor<T> monitor;
         public Controller<T> controller;
         Client client;
-        String voltProcedure;
+        String procName;
         Callback callback;
+        Statement jdbcStmt;
+        Config config;
+        StringBuilder sb;
 
-        public Consumer<T> set(Controller controller, Monitor<T> monitor, Client client, String voltProcedure, Callback callback) {
+        public Consumer<T> set(Controller controller, Monitor<T> monitor, Client client, String voltProcedure, Callback callback, Statement jdbcStmt, Config config) {
             this.controller = controller;
             this.monitor = monitor;
             this.client = client;
-            this.voltProcedure = voltProcedure;
+            this.procName = voltProcedure;
             this.callback = callback;
-
             this.setName("Consumer");
+            this.jdbcStmt = jdbcStmt;
+            this.config = config;
+            sb = new StringBuilder();
+
+            if (config.queriesFile.isEmpty()) {
+                sb.append("INSERT INTO ").append(config.tables);
+                sb.append(" (");
+            } else {
+                sb.append("INSERT INTO ").append(voltProcedure.replace(".insert", ""));
+                sb.append(" (");
+            }
 
             return this;
         }
