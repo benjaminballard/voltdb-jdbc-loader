@@ -28,7 +28,8 @@ function loader() {
         --tablename="mytable"
         --srisvoltdb=false
         --dwisvoltdb=true
-}
+        --isPaginated=false
+    }
 
 function help() {
     echo "Usage: ./run.sh {help|clean|loader|assemble}"

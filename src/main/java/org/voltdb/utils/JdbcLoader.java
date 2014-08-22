@@ -2,12 +2,14 @@ package org.voltdb.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.voltdb.VoltTable;
 import org.voltdb.client.Client;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.concurrent.*;
 
 public class JdbcLoader {
@@ -23,7 +25,6 @@ public class JdbcLoader {
         cal.setTimeZone(TimeZone.getTimeZone("EST"));
         logger = LoggerFactory.getLogger(JdbcLoader.class);
     }
-
     public void connectToSource() throws Exception {
         // load JDBC driver
         c = Class.forName(config.jdbcdriver);
@@ -52,7 +53,55 @@ public class JdbcLoader {
             // query the table
             String jdbcSelect = "SELECT * FROM " + tableName + ";";
 
-            Controller processor = new Controller<ArrayList<Object[]>>(client, new SourceReader(), new DestinationWriter(), jdbcSelect, procName, config);
+            //create query to find count
+            String countquery= jdbcSelect.replace("*", "COUNT(*)");
+            int pages = 1;
+            String base = "";
+            if (config.srisvoltdb) {
+                if (config.isPaginated) {
+                    try {
+                        //find count
+                        if (countquery.contains("<") || countquery.contains(">")) {
+                            int bracketOpen = countquery.indexOf("<");
+                            int bracketClose = countquery.indexOf(">");
+                            String orderCol = countquery.substring(bracketOpen + 1, bracketClose);
+                            countquery = countquery.replace("<" + orderCol + ">", "");
+                        }
+                        VoltTable vcount = client.callProcedure("@AdHoc", countquery).getResults()[0];
+                        int count = Integer.parseInt(vcount.toString());
+                        //determine number of pages from total data and page size
+                        pages = (int) Math.ceil((double) count / config.pageSize);
+                        System.out.println(pages);
+                    } catch (Exception e) {
+                        System.out.println("Count formation failure!");
+                    }
+                }
+            } else {
+                    //find count
+                Connection conn = DriverManager.getConnection(config.jdbcurl, config.jdbcuser, config.jdbcpassword);
+                base = conn.getMetaData().getDatabaseProductName().toLowerCase();
+                Statement jdbcStmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                if (countquery.contains("<") || countquery.contains(">")) {
+                    int bracketOpen = countquery.indexOf("<");
+                    int bracketClose = countquery.indexOf(">");
+                    String orderCol = countquery.substring(bracketOpen + 1, bracketClose);
+                    countquery = countquery.replace("<" + orderCol + ">", "");
+                }
+                ResultSet rcount = jdbcStmt.executeQuery(countquery);                  //determine number of pages from total data and page size
+                if (base.contains("postgres") && config.isPaginated) {
+                    int count = Integer.parseInt(rcount.toString());
+                    pages = (int) Math.ceil((double) count / config.pageSize);
+                }
+            }
+
+            //establish new SourceReaders and DestinationWriters for pages
+            SourceReader[] sr = new SourceReader[pages];
+            DestinationWriter[] cr = new DestinationWriter[pages];
+            for (int i = 0; i < pages; i++) {
+                sr[i] = new SourceReader();
+                cr[i] = new DestinationWriter();
+            }
+            Controller processor = new Controller<ArrayList<Object[]>>(client, sr, cr, jdbcSelect, procName, config, pages, base);
             completion.submit(processor);
         }
 
@@ -88,13 +137,64 @@ public class JdbcLoader {
             String query = properties.getProperty(key);
             key = (key.contains(Config.DOT_SEPARATOR) ? key.substring(key.indexOf(Config.DOT_SEPARATOR)+ 1) : key);
 
+
             while (query.contains("[:")) {
                 String param = query.substring(query.indexOf("[:") + 2, query.indexOf("]"));
 
                 query = query.replaceFirst("\\[\\:" + param + "\\]", properties.getProperty(param));
             }
+            int pages = 1;
+            String base = "";
+            if (config.srisvoltdb) {
+                if (config.isPaginated) {
+                    try {
+                        //find count
+                        String countquery = query;
+                        if (countquery.contains("<") || countquery.contains(">")) {
+                            int bracketOpen = countquery.indexOf("<");
+                            int bracketClose = countquery.indexOf(">");
+                            String orderCol = countquery.substring(bracketOpen + 1, bracketClose);
+                            countquery = countquery.replace("<" + orderCol + ">", "");
+                        }
+                        VoltTable vcount = client.callProcedure("@AdHoc", countquery).getResults()[0];
+                        int count = vcount.getRowCount();
+                        pages = (int) Math.ceil((double) count / config.pageSize);
+                    } catch (Exception e) {
+                        System.out.println("Count formation failure!");
+                    }
+                }
+                // set up data in order
+            } else {
+                //find count
+                String countquery = query.replace("*", "COUNT(*)");
+                Connection conn = DriverManager.getConnection(config.jdbcurl, config.jdbcuser, config.jdbcpassword);
+                base = conn.getMetaData().getDatabaseProductName().toLowerCase();
+                System.out.println("BASE: " + base);
+                Statement jdbcStmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                if (countquery.contains("<") || countquery.contains(">")) {
+                    int bracketOpen = countquery.indexOf("<");
+                    int bracketClose = countquery.indexOf(">");
+                    String orderCol = countquery.substring(bracketOpen + 1, bracketClose);
+                    countquery = countquery.replace("<" + orderCol + ">", "");
+                }
+                ResultSet rcount = jdbcStmt.executeQuery(countquery);
+                rcount.next();
+                int count = Integer.parseInt(rcount.getArray(1).toString());
 
-            Controller processor = new Controller<ArrayList<Object[]>>(client, new SourceReader(), new DestinationWriter(), query, key.toUpperCase() + ".insert", config);
+                //THIS IF NEEDS A WAY TO DETERMINE IF POSTGRES
+                if (base.contains("postgres") && config.isPaginated) {
+                    pages = (int) Math.ceil((double) count / config.pageSize);
+                }
+                // set up data in order
+            }
+            //establish new SourceReaders and DestinationWriters for pages
+            SourceReader[] sr = new SourceReader[pages];
+            DestinationWriter[] cr = new DestinationWriter[pages];
+            for (int i = 0; i < pages; i++) {
+                sr[i] = new SourceReader();
+                cr[i] = new DestinationWriter();
+            }
+            Controller processor = new Controller<ArrayList<Object[]>>(client, sr, cr, query, key.toUpperCase() + ".insert", config, pages, base);
             completion.submit(processor);
         }
 
